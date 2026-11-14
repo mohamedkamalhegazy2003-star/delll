@@ -10,7 +10,10 @@ on:
 jobs:
   build-apk:
     name: Build release APK
-    runs-on: ubuntu-latest
+    # ubuntu-22.04 ships the Android SDK and is the image the React Native /
+    # Expo toolchain is tested against. ubuntu-latest (26.04) breaks the
+    # android-actions/setup-android step.
+    runs-on: ubuntu-22.04
     timeout-minutes: 45
 
     steps:
@@ -28,8 +31,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Check Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls "$ANDROID_HOME" || true
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -43,7 +51,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
         env:
           CI: 1
           GRADLE_OPTS: -Xmx3g -Dorg.gradle.jvmargs=-Xmx3g
